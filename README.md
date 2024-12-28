@@ -285,3 +285,4 @@ View [all notable changes](https://github.com/op5dev/tf-via-pr/releases "Release
 ### Sponsors
 
 - [@3ware](https://github.com/3ware)
+- [@StoatLabs](https://github.com/StoatLabs)
