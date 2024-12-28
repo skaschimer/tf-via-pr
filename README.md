@@ -63,13 +63,12 @@ jobs:
       - uses: actions/checkout@4
       - uses: hashicorp/setup-terraform@v3
       - uses: op5dev/tf-via-pr@v13
-        with:
-          # Run plan by default, or apply with lock on merge.
+        with: # Run plan by default, or apply with lock on merge.
+          working-directory: path/to/directory
           command: ${{ github.event_name == 'push' && 'apply' || 'plan' }}
           arg-lock: ${{ github.event_name == 'push' }}
           arg-var-file: env/dev.tfvars
           arg-workspace: dev-use1
-          working-directory: path/to/directory
           plan-encrypt: ${{ secrets.PASSPHRASE }}
 ```
 
@@ -87,7 +86,7 @@ The following workflows showcase common use cases, while a comprehensive list of
   <tr>
     <td>
       </br>
-      <a href="/.github/examples/pr_push_auth.yaml"><strong>Run on</strong></a> <code>pull_request</code> (plan) and <code>push</code> (apply) events with Terraform, AWS <strong>authentication</strong> and <strong>caching</strong>.
+      <a href="/.github/examples/pr_push_auth.yaml"><strong>Run on</strong></a> <code>pull_request</code> (plan) and <code>push</code> (apply) events with Terraform, <strong>authentication</strong> and <strong>cache</strong>.
       </br></br>
     </td>
     <td>
@@ -99,12 +98,12 @@ The following workflows showcase common use cases, while a comprehensive list of
   <tr>
     <td>
       </br>
-      <a href="/.github/examples/pr_push_stages.yaml"><strong>Run on</strong></a> <code>pull_request</code> (plan) and <code>push</code> (apply) events with <strong>conditional job stages</strong> based on plan file.
+      <a href="/.github/examples/pr_push_stages.yaml"><strong>Run on</strong></a> <code>pull_request</code> (plan) and <code>push</code> (apply) events with <strong>conditional jobs</strong> based on plan file.
       </br></br>
     </td>
     <td>
       </br>
-      <a href="/.github/examples/schedule_refresh.yaml"><strong>Run on</strong></a> <code>schedule</code> (cron) event with <code>-refresh-only</code> to open an issue on <strong>configuration drift</strong>.
+      <a href="/.github/examples/schedule_refresh.yaml"><strong>Run on</strong></a> <code>schedule</code> <strong>cron</strong> event with <code>-refresh-only</code> to open an issue on <strong>configuration drift</strong>.
       </br></br>
     </td>
   </tr>
@@ -116,7 +115,7 @@ The following workflows showcase common use cases, while a comprehensive list of
     </td>
     <td>
       </br>
-      <a href="/.github/examples/pr_self_hosted.yaml"><strong>Run on</strong></a> <code>pull_request</code> (plan or apply) and <code>labeled</code> <strong>(manual) events on self-hosted</strong> Terraform and OpenTofu.
+      <a href="/.github/examples/pr_self_hosted.yaml"><strong>Run on</strong></a> <code>pull_request</code> (plan or apply) and <code>labeled</code> <strong>manual</strong> events on <strong>self-hosted</strong> Terraform/OpenTofu.
       </br></br>
     </td>
   </tr>
@@ -131,7 +130,10 @@ In order to decrypt the plan file locally, use the following commands after down
 
 ```fish
 unzip <tf.plan>
-openssl enc -aes-256-ctr -pbkdf2 -salt -in <tf.plan> -out tf.plan.decrypted -pass pass:"<passphrase>" -d
+openssl enc -d -aes-256-ctr -pbkdf2 -salt \
+  -in <tf.plan> \
+  -out tf.plan.decrypted \
+  -pass pass:"<passphrase>"
 <tf.tool> show tf.plan.decrypted
 ```
 </br>
@@ -145,27 +147,33 @@ For each workflow run, a matrix-friendly job summary with logs is added as a fal
 
 ### Inputs - Configuration
 
-| Type     | Name                | Description                                                                                                                          |
-| -------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
-| CLI      | `command`           | Command to run between: `plan` or `apply`. Optionally `init` for checks and outputs only.</br>Example: `plan`                        |
-| CLI      | `working-directory` | Specify the working directory of TF code, alias of `arg-chdir`.</br>Example: `path/to/directory`                                     |
-| CLI      | `tool`              | Provisioning tool to use between: `terraform` or `tofu`.</br>Default: `terraform`                                                    |
-| Check    | `format`            | Check format of TF code.</br>Default: `false`                                                                                        |
-| Check    | `validate`          | Check validation of TF code.</br>Default: `false`                                                                                    |
-| Check    | `plan-parity`       | Replace the plan file if it matches a newly-generated one to prevent stale apply (very rarely needed nowadays).</br>Default: `false` |
-| Security | `plan-encrypt`      | Encrypt plan file artifact with the given input.</br>Example: `${{ secrets.PASSPHRASE }}`                                            |
-| Security | `token`             | Specify a GitHub token.</br>Default: `${{ github.token }}`                                                                           |
-| UI       | `label-pr`          | Add a PR label with the command input.</br>Default: `true`                                                                           |
-| UI       | `comment-pr`        | Add a PR comment: `always`, `on-change`, or `never`.</br>Default: `always`                                                           |
-| UI       | `comment-method`    | PR comment by: `update` existing comment or `recreate` and delete previous one.</br>Default: `update`                                |
-| UI       | `tag-actor`         | Tag the workflow triggering actor: `always`, `on-change`, or `never`.</br>Default: `always`                                          |
-| UI       | `hide-args`         | Hide comma-separated list of CLI arguments from the command input.</br>Default: `detailed-exitcode,lock,out,var=`                    |
-| UI       | `show-args`         | Show comma-separated list of CLI arguments in the command input.</br>Default: `workspace`                                            |
+| Type     | Name                | Description                                                                                                       |
+| -------- | ------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| CLI      | `working-directory` | Specify the working directory of TF code, alias of `arg-chdir`.</br>Example: `path/to/directory`                  |
+| CLI      | `command`           | Command to run between: `plan` or `apply`.<sup>1</sup></br>Example: `plan`                                        |
+| CLI      | `tool`              | Provisioning tool to use between: `terraform` or `tofu`.</br>Default: `terraform`                                 |
+| Check    | `format`            | Check format of TF code.</br>Default: `false`                                                                     |
+| Check    | `validate`          | Check validation of TF code.</br>Default: `false`                                                                 |
+| Check    | `plan-parity`       | Replace plan file if it matches a newly-generated one to prevent stale apply.<sup>2</sup></br>Default: `false`    |
+| Security | `plan-encrypt`      | Encrypt plan file artifact with the given input.<sup>3</sup></br>Example: `${{ secrets.PASSPHRASE }}`             |
+| Security | `token`             | Specify a GitHub token.</br>Default: `${{ github.token }}`                                                        |
+| UI       | `label-pr`          | Add a PR label with the command input (e.g., `tf:plan`).</br>Default: `true`                                      |
+| UI       | `comment-pr`        | Add a PR comment: `always`, `on-change`, or `never`.<sup>4</sup></br>Default: `always`                            |
+| UI       | `comment-method`    | PR comment by: `update` existing comment or `recreate` and delete previous one.<sup>5</sup></br>Default: `update` |
+| UI       | `tag-actor`         | Tag the workflow triggering actor: `always`, `on-change`, or `never`.<sup>4</sup></br>Default: `always`           |
+| UI       | `hide-args`         | Hide comma-separated list of CLI arguments from the command input.</br>Default: `detailed-exitcode,lock,out,var=` |
+| UI       | `show-args`         | Show comma-separated list of CLI arguments in the command input.</br>Default: `workspace`                         |
 </br>
 
-The default behavior of `comment-method` is to update the existing PR comment with the latest plan/apply output, making it easy to track changes over time through the comment's revision history.</br>
 
-[![PR comment revision history comparing plan and apply outputs.](/.github/assets/revisions.png)](https://raw.githubusercontent.com/op5dev/tf-via-pr/refs/heads/main/.github/assets/revisions.png "View full-size image.")
+- <sup>1</sup> Both `command: plan` and `command: apply` include: `init`, `fmt` (with `format: true`), `validate` (with `validate: true`), and `workspace` (with `arg-workspace`) commands rolled into it automatically.</br>
+  To separately run checks and/or generate outputs only, `command: init` can be used.</br>
+- <sup>2</sup> For `merge_group` event trigger, `plan-parity: true` inputs helps to prevent stale apply within the merge queue of workflow runs.</br>
+- <sup>3</sup> The secret string input for `plan-encrypt` can be of any length, as long as it's consistent between encryption (plan) and decryption (apply).</br>
+- <sup>4</sup> The `on-change` option is true when the exit code of the last TF command is non-zero.</br>
+- <sup>5</sup> The default behavior of `comment-method` is to update the existing PR comment with the latest plan/apply output, making it easy to track changes over time through the comment's revision history.</br>
+
+  [![PR comment revision history comparing plan and apply outputs.](/.github/assets/revisions.png)](https://raw.githubusercontent.com/op5dev/tf-via-pr/refs/heads/main/.github/assets/revisions.png "View full-size image.")
 </br></br>
 
 ### Inputs - Arguments
