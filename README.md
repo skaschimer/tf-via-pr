@@ -63,7 +63,8 @@ jobs:
       - uses: actions/checkout@4
       - uses: hashicorp/setup-terraform@v3
       - uses: op5dev/tf-via-pr@v13
-        with: # Run plan by default, or apply with lock on merge.
+        with:
+          # Run plan by default, or apply on merge with lock.
           working-directory: path/to/directory
           command: ${{ github.event_name == 'push' && 'apply' || 'plan' }}
           arg-lock: ${{ github.event_name == 'push' }}
@@ -280,3 +281,5 @@ View [all notable changes](https://github.com/op5dev/tf-via-pr/releases "Release
 - This project is licensed under the permissive [Apache License 2.0](LICENSE "Apache License 2.0.").
 - All works herein are my own, shared of my own volition, and [contributors](https://github.com/op5dev/tf-via-pr/graphs/contributors "Contributors.").
 - Copyright 2016-2024 [Rishav Dhar](https://github.com/rdhar "Rishav Dhar's GitHub profile.") — All wrongs reserved.
+
+### Sponsors
