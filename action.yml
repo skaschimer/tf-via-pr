@@ -303,10 +303,7 @@ runs:
         # Parse the tf.console.txt file, truncated for character limit.
         console=$(head --bytes=42000 tf.console.txt)
         if [[ ${#console} -eq 42000 ]]; then console="${console}"$'\n…'; fi
-        { echo 'result<<EOTFVIAPR'
-          echo "$console"
-          echo EOTFVIAPR
-        } >> "$GITHUB_OUTPUT"
+        echo "result<<EORESULTTFVIAPR"$'\n'"$console"$'\n'EORESULTTFVIAPR >> "$GITHUB_OUTPUT"
 
         # Parse the tf.console.txt file for the summary.
         summary=$(awk '/^(Error:|Plan:|Apply complete!|No changes.|Success)/ {line=$0} END {if (line) print line; else print "View output."}' tf.console.txt)
@@ -334,10 +331,7 @@ runs:
           # Parse diff of changes, truncated for character limit.
           diff_truncated=$(head --bytes=24000 tf.diff.txt)
           if [[ ${#diff_truncated} -eq 24000 ]]; then diff_truncated="${diff_truncated}"$'\n…'; fi
-          { echo 'diff<<EOTFVIAPR'
-            echo "$diff_truncated"
-            echo EOTFVIAPR
-          } >> "$GITHUB_OUTPUT"
+          echo "diff<<EODIFFTFVIAPR"$'\n'"$diff_truncated"$'\n'EODIFFTFVIAPR >> "$GITHUB_OUTPUT"
 
           diff="
         <details><summary>Diff of ${diff_count} ${diff_change}.</summary>
@@ -362,7 +356,7 @@ runs:
         if [[ "$tag_actor" == "true" ]]; then handle="@"; else handle=""; fi
 
         # Collate body content.
-        body=$(cat <<EOTFVIAPR
+        body=$(cat <<EOBODYTFVIAPR
         <!-- placeholder-1 -->
         \`\`\`fish
         ${command}
@@ -383,11 +377,12 @@ runs:
         <!-- placeholder-5 -->
         <!-- ${{ steps.identifier.outputs.name }} -->
         <!-- placeholder-6 -->
-        EOTFVIAPR
+        EOBODYTFVIAPR
         )
 
         # Post output to job summary.
         echo "$body" >> $GITHUB_STEP_SUMMARY
+        echo "comment_body<<EOCOMMENTTFVIAPR"$'\n'"$body"$'\n'EOCOMMENTTFVIAPR >> "$GITHUB_OUTPUT"
 
         # Post PR comment if configured and PR exists.
         if [[ "$create_comment" == "true" && "${{ steps.identifier.outputs.pr }}" != "0" ]]; then
@@ -431,6 +426,9 @@ outputs:
   command:
     description: "Input of the last TF command."
     value: ${{ steps.post.outputs.command }}
+  comment-body:
+    description: "Body of the PR comment."
+    value: ${{ steps.post.outputs.comment_body }}
   comment-id:
     description: "ID of the PR comment."
     value: ${{ steps.post.outputs.comment_id }}
